@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HR Assistant</title>
+    <style>
+        /* Style the container */
+        .output-container {
+            border: 1px solid #ddd;
+            background-color: #f9f9f9;
+            font-size: 23px;
+            padding: 50px;
+            margin-top: 50px;
+            border-radius: 10px;
+        }
+
+        /* Style the button */
+        #predict-btn {
+            width: 100%;
+            font-weight: bold;
+            margin-top: 30px;
+            background-color: #04AA6D;
+            color: white;
+            padding: 20px 70px;
+            font-size: 20px;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: background-color 0.3s ease;
+        }
+
+        /* Hover effect for the button */
+        #predict-btn:hover {
+            background-color: #038c5a;
+        }
+    </style>
+    <style>
+        body {
+            background-image: url('HR-app_api/hr_background.jpeg');
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            background-size: cover;
+        }
+        #message {
+            display: none;
+            text-align: center;
+            font-size: 24px;
+            color: #333;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+    </style>
+    <style>
+        /* Style for the button container */
+        .button-container {
+            display: flex;
+            justify-content: space-around; /* This will space out the buttons evenly */
+            padding: 30px;
+        }
+
+        /* Style for each button */
+        .form-button {
+            padding: 30px 50px; /* Adjust padding as needed */
+            margin: 15px; /* Adjust margin as needed */
+            /* Add other styles like background-color, border, etc. */
+        }
+    </style>
+    <style>
+        /* Style for the form labels */
+        label {
+            display: block;
+            margin-top: 20px;
+            letter-spacing: 0.05em;
+            color: #11115c;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        /* Style for the form headings and paragraphs */
+        h1, p {
+            color: #073d10;
+            text-align: center;
+        }
+
+        h1 {
+            margin-bottom: 0.5em;
+            font-size: 30px;
+        }
+
+        p {
+            font-size: 21px;
+            margin-bottom: 2em;
+        }
+    </style>
+    <style>
+        /* Style for the form elements */
+        input[type="text"],
+        input[type="number"],
+        select {
+            width: 100%; /* Full width */
+            padding: 12px 20px; /* Padding */
+            margin: 8px 0; /* Margin */
+            display: inline-block; /* Inline-block display */
+            border: 5px solid #ccc; /* Border */
+            border-radius: 4px; /* Rounded corners */
+            box-sizing: border-box; /* Box sizing */
+        }
+
+
+        /* Additional styles */
+        .form-container {
+            border-radius: 5px;
+            background-color: #f2f2f2;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>HR Assistant</h1>
+    <p>First, could you provide the following information about your employee? </p>
+    <p>Then we will analyze the data collected and provide you with information about whether or not the employee will leave the company so you can take some initiatives to improve employee satisfaction levels at the company.</p>
+    <form id="predictionForm">
+        <!-- Example input fields (customize as needed) -->
+        <label for="last evaluation">Score of employee's last performance review [0–1]:</label>
+        <input type="number" min="0" max="1" step="0.01" id="last evaluation" name="last evaluation" required><br>
+
+        <!-- Repeat similar input fields for other parameters -->
+        <!-- For example: -->
+        <label for="number project">Number of projects employee contributes to:</label>
+        <input type="number" min="0" id="number project" name="number project" required><br> 
+
+        <label for="tenure">How long the employee has been with the company (years):</label>
+        <input type="number" min="0" id="tenure" name="tenure" required><br> 
+
+        <label for="work accident">Whether or not the employee experienced an accident while at work:</label>
+        <select name="work accident" id="work accident">
+            <option value="option1">Yes</option>
+            <option value="option2">No</option>
+        </select>
+
+        <label for="promotion_last_5years">Whether or not the employee was promoted in the last 5 years:</label>
+        <select name="promotion_last_5years" id="promotion_last_5years">
+            <option value="option1">Yes</option>
+            <option value="option2">No</option>
+        </select>
+
+        <label for="salary">The employee's salary tier:</label> 
+        <select name="salary" id="salary">
+            <option value="option1">Low</option>
+            <option value="option2">Medium</option>
+            <option value="option3">High</option>
+        </select>
+
+        <label for="department">The employee's department:</label>
+        <select name="department" id="department">
+            <option value="option1">IT</option>
+            <option value="option2">Research and development</option>
+            <option value="option3">accounting</option>
+            <option value="option4">hr</option>
+            <option value="option5">management</option>
+            <option value="option6">marketing</option>
+            <option value="option7">product management</option>
+            <option value="option8">sales</option>
+            <option value="option9">support</option>
+            <option value="option10">technical</option>
+        </select>
+
+        <label for="overworked">The employee could define being overworked as working more than 175 hours per month on average.:</label>
+        <select name="overworked" id="overworked">
+            <option value="option1">Yes</option>
+            <option value="option2">No</option>
+        </select>
+
+
+
+
+        <input type="button" id="predict-btn" value="Get Insights">
+    </form>
+
+    <div id="array-display"></div>
+    <div class="output-container" id="api-response"></div>
+
+    <script>
+        // Initialize a reference array with 17 zeros
+        var referenceArray = new Array(17).fill(0);
+
+        document.getElementById("predict-btn").addEventListener("click", function () {
+            // Update the reference array with the user's inputs
+            // Example for performance score:
+            var evaluationInput = document.getElementById("last evaluation");
+            if (evaluationInput && evaluationInput.value) {
+                referenceArray[0] = parseFloat(evaluationInput.value);
+            }
+            var projectInput = document.getElementById("number project");
+            if (projectInput && projectInput.value) {
+                referenceArray[1] = parseFloat(projectInput.value);
+            }
+            var tenureInput = document.getElementById("tenure");
+            if (tenureInput && tenureInput.value) {
+                referenceArray[2] = parseFloat(tenureInput.value);
+            }
+            var accidentInput = document.getElementById("work accident");
+            if (accidentInput && accidentInput.value) 
+            {
+                if(accidentInput.value === "option1")
+                {referenceArray[3] = 1;}
+                else if(accidentInput.value === "option2")
+                {referenceArray[3] = 0;}
+                
+            }
+            var performanceInput = document.getElementById("promotion_last_5years");
+            if (performanceInput && performanceInput.value) 
+            {
+                if(performanceInput.value === "option1")
+                {referenceArray[4] = 1;}
+                else if(performanceInput.value === "option2")
+                {referenceArray[4] = 0;}
+                
+            }
+            var salaryInput = document.getElementById("salary");
+            if (salaryInput && salaryInput.value) 
+            {
+                if(salaryInput.value === "option1")
+                {referenceArray[5] = 0;}
+                else if(salaryInput.value === "option2")
+                {referenceArray[5] = 1;}
+                else if(salaryInput.value === "option3")
+                {referenceArray[5] = 2;}
+                
+            }
+            var departmentInput = document.getElementById("department");
+            if (departmentInput && departmentInput.value) 
+            {
+                if(departmentInput.value === "option1")
+                {referenceArray[6] = 1;
+                    referenceArray[7] = 0;
+                    referenceArray[8] = 0;
+                    referenceArray[9] = 0;
+                    referenceArray[10] = 0;
+                    referenceArray[11] = 0;
+                    referenceArray[12] = 0;
+                    referenceArray[13] = 0;
+                    referenceArray[14] = 0;
+                    referenceArray[15] = 0;
+                }
+                else if(departmentInput.value === "option2")
+                {referenceArray[6] = 0;
+                    referenceArray[7] = 1;
+                    referenceArray[8] = 0;
+                    referenceArray[9] = 0;
+                    referenceArray[10] = 0;
+                    referenceArray[11] = 0;
+                    referenceArray[12] = 0;
+                    referenceArray[13] = 0;
+                    referenceArray[14] = 0;
+                    referenceArray[15] = 0;
+                }
+                else if(departmentInput.value === "option3")
+                {referenceArray[6] = 0;
+                    referenceArray[7] = 0;
+                    referenceArray[8] = 1;
+                    referenceArray[9] = 0;
+                    referenceArray[10] = 0;
+                    referenceArray[11] = 0;
+                    referenceArray[12] = 0;
+                    referenceArray[13] = 0;
+                    referenceArray[14] = 0;
+                    referenceArray[15] = 0;
+                }
+                else if(departmentInput.value === "option4")
+                {referenceArray[6] = 0;
+                    referenceArray[7] = 0;
+                    referenceArray[8] = 0;
+                    referenceArray[9] = 1;
+                    referenceArray[10] = 0;
+                    referenceArray[11] = 0;
+                    referenceArray[12] = 0;
+                    referenceArray[13] = 0;
+                    referenceArray[14] = 0;
+                    referenceArray[15] = 0;
+                }
+                else if(departmentInput.value === "option5")
+                {referenceArray[6] = 0;
+                    referenceArray[7] = 0;
+                    referenceArray[8] = 0;
+                    referenceArray[9] = 0;
+                    referenceArray[10] = 1;
+                    referenceArray[11] = 0;
+                    referenceArray[12] = 0;
+                    referenceArray[13] = 0;
+                    referenceArray[14] = 0;
+                    referenceArray[15] = 0;
+                }
+                else if(departmentInput.value === "option6")
+                {referenceArray[6] = 0;
+                    referenceArray[7] = 0;
+                    referenceArray[8] = 0;
+                    referenceArray[9] = 0;
+                    referenceArray[10] = 0;
+                    referenceArray[11] = 1;
+                    referenceArray[12] = 0;
+                    referenceArray[13] = 0;
+                    referenceArray[14] = 0;
+                    referenceArray[15] = 0;
+                }
+                else if(departmentInput.value === "option7")
+                {referenceArray[6] = 0;
+                    referenceArray[7] = 0;
+                    referenceArray[8] = 0;
+                    referenceArray[9] = 0;
+                    referenceArray[10] = 0;
+                    referenceArray[11] = 0;
+                    referenceArray[12] = 1;
+                    referenceArray[13] = 0;
+                    referenceArray[14] = 0;
+                    referenceArray[15] = 0;
+                }
+                else if(departmentInput.value === "option8")
+                {referenceArray[6] = 0;
+                    referenceArray[7] = 0;
+                    referenceArray[8] = 0;
+                    referenceArray[9] = 0;
+                    referenceArray[10] = 0;
+                    referenceArray[11] = 0;
+                    referenceArray[12] = 0;
+                    referenceArray[13] = 1;
+                    referenceArray[14] = 0;
+                    referenceArray[15] = 0;
+                }
+                else if(departmentInput.value === "option9")
+                {referenceArray[6] = 0;
+                    referenceArray[7] = 0;
+                    referenceArray[8] = 0;
+                    referenceArray[9] = 0;
+                    referenceArray[10] = 0;
+                    referenceArray[11] = 0;
+                    referenceArray[12] = 0;
+                    referenceArray[13] = 0;
+                    referenceArray[14] = 1;
+                    referenceArray[15] = 0;
+                }
+                else if(departmentInput.value === "option10")
+                {referenceArray[6] = 0;
+                    referenceArray[7] = 0;
+                    referenceArray[8] = 0;
+                    referenceArray[9] = 0;
+                    referenceArray[10] = 0;
+                    referenceArray[11] = 0;
+                    referenceArray[12] = 0;
+                    referenceArray[13] = 0;
+                    referenceArray[14] = 0;
+                    referenceArray[15] = 1;
+                }
+                
+            }
+            var overworkedInput = document.getElementById("overworked");
+            if (overworkedInput && overworkedInput.value) 
+            {
+                if(overworkedInput.value === "option1")
+                {referenceArray[16] = 1;}
+                else if(overworkedInput.value === "option2")
+                {referenceArray[16] = 0;}
+                
+            }
+            // Repeat for other inputs, updating the correct index in referenceArray
+
+            // Display the updated reference array
+            //document.getElementById("array-display").textContent = JSON.stringify(referenceArray, null, 2);
+
+            // Convert the array to a comma-separated string
+            var arrayString = referenceArray.join(',');
+
+            // Send the array to the API
+            fetch('https://hr-assistant-zel8.onrender.com/predict/?inputs=' + arrayString)
+                .then(function(response) {
+                    return response.json();
+                })
+                .then(function(data) {
+                    // Display the JSON response
+                    document.getElementById("api-response").textContent = JSON.stringify(data, null, 2);
+                })
+                .catch(function(error) {
+                    console.error('Error:', error);
+                });
+
+        });
+        
+    </script>
+            
+</body>
+</html>
